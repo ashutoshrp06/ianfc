@@ -1,0 +1,27 @@
+# Env / secrets
+.env
+local.env
+*.env
+
+# Maven
+target/
+*.jar
+*.war
+*.ear
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Docker volumes
+pgdata/
