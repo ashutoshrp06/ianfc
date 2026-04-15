@@ -64,7 +64,10 @@ public class ScenarioEngine {
 
     private TelemetryEvent buildNormalEvent() {
         String device = ALL_DEVICES.get(random.nextInt(ALL_DEVICES.size()));
-        EventType[] types = EventType.values();
+        EventType[] types = {
+                EventType.LINK_UP, EventType.BGP_SESSION_UP,
+                EventType.LATENCY_NORMAL, EventType.PACKET_LOSS
+        };
         EventType eventType = types[random.nextInt(types.length)];
 
         Severity severity;

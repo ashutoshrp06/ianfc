@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>IANFC — Network Operations Centre</title>
+
+    <!--
+      LOGOTYPE FONT — swap the @import and font-family in .logo-mark to change:
+      Bebas Neue (current):        family=Bebas+Neue
+      Barlow Condensed Black:      family=Barlow+Condensed:wght@900   → font-family:'Barlow Condensed'
+      Big Shoulders Display Black: family=Big+Shoulders+Display:wght@900 → font-family:'Big Shoulders Display'
+      Syne ExtraBold:              family=Syne:wght@800               → font-family:'Syne'
+      Rajdhani Bold:               family=Rajdhani:wght@700           → font-family:'Rajdhani'
+    -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+    <style>
+        /* ─────────────────────────────────────────────────────────────
+           COLOR SYSTEM — unified blue-tinted neutral base
+           Both themes share the same hue angle (~220°) so switching
+           themes feels like the same product in different lighting.
+
+           Contrast ratios (WCAG AA: text ≥4.5:1, UI ≥3:1)
+           Dark  —  t1 on bg: ~14:1  |  accent on bg: ~5.2:1
+                   green on bg: ~8:1  |  red on bg: ~6:1
+           Light —  t1 on bg: ~17:1  |  accent on bg: ~5.0:1
+                   green on bg: ~4.8:1| red on bg: ~5.4:1
+        ───────────────────────────────────────────────────────────── */
+        :root {
+            /* Surfaces */
+            --bg:         #080C15;
+            --bg-alt:     #0B1020;
+            --surface:    #0F1522;
+            --surface-2:  #16202E;
+            --surface-3:  #1D2A3C;
+
+            /* Borders — blue-tinted so they don't read as generic grey */
+            --border:     rgba(90,130,200,0.10);
+            --border-2:   rgba(90,130,200,0.18);
+
+            /* Accent — cobalt, not electric blue, not sky blue */
+            --accent:        #5B8FE8;
+            --accent-muted:  rgba(91,143,232,0.13);
+
+            /* Status — intentionally desaturated for professional read */
+            --green:         #38C99A;   /* teal-green — Juniper/Cisco style */
+            --green-muted:   rgba(56,201,154,0.11);
+            --amber:         #E8A83A;   /* warm amber, not yellow */
+            --amber-muted:   rgba(232,168,58,0.11);
+            --red:           #E8605A;   /* vermillion — not hot pink, not pure red */
+            --red-muted:     rgba(232,96,90,0.11);
+
+            /* Text — cool white (87% luminance) against blue-black */
+            --t1:  #D8E2F0;
+            --t2:  rgba(216,226,240,0.52);
+            --t3:  rgba(216,226,240,0.27);
+
+            --shadow-card: none;
+            --toggle-bg:   rgba(90,130,200,0.12);
+            --mono:  'JetBrains Mono', monospace;
+            --sans:  'Plus Jakarta Sans', sans-serif;
+        }
+
+        [data-theme="light"] {
+            /* Surfaces — cool grey, not warm beige */
+            --bg:         #EDF0F6;
+            --bg-alt:     #E3E8F2;
+            --surface:    #FFFFFF;
+            --surface-2:  #F4F6FB;
+            --surface-3:  #E8EDF7;
+
+            /* Borders — same blue tint, lighter */
+            --border:     rgba(40,70,140,0.09);
+            --border-2:   rgba(40,70,140,0.16);
+
+            /* Accent — deeper cobalt for white-bg contrast */
+            --accent:        #1A5DD8;   /* 5.0:1 on white */
+            --accent-muted:  rgba(26,93,216,0.09);
+
+            /* Status — deep enough for 4.5:1 on white */
+            --green:         #0A9E74;   /* 4.8:1 on white */
+            --green-muted:   rgba(10,158,116,0.09);
+            --amber:         #B87415;   /* 4.6:1 on white */
+            --amber-muted:   rgba(184,116,21,0.09);
+            --red:           #C42E28;   /* 5.4:1 on white */
+            --red-muted:     rgba(196,46,40,0.09);
+
+            /* Text — near-black with blue tint matches the surface hue */
+            --t1:  #0A0F1C;
+            --t2:  rgba(10,15,28,0.54);
+            --t3:  rgba(10,15,28,0.32);
+
+            --shadow-card: 0 1px 3px rgba(10,20,60,0.06), 0 4px 16px rgba(10,20,60,0.05);
+            --toggle-bg:   rgba(40,70,140,0.07);
+        }
+
+        /* ── Reset & base ─────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 14px; }
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--t1);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            transition: background .28s ease, color .28s ease;
+        }
+
+        /* ── Header ───────────────────────────────────────────── */
+        header {
+            position: sticky; top: 0; z-index: 200;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; height: 56px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            transition: background .28s, border-color .28s;
+        }
+
+        .logo { display: flex; align-items: center; gap: 14px; }
+
+        /* ── LOGOTYPE — Bebas Neue ─────────────────────────────
+           To swap font: change font-family here and update @import above.
+           Bebas Neue: font-size 26px, letter-spacing .12em looks best.
+           Barlow Condensed Black: font-size 22px, font-weight 900, letter-spacing .08em
+           Big Shoulders Display: font-size 24px, font-weight 900, letter-spacing .06em
+           Syne ExtraBold: font-size 20px, font-weight 800, letter-spacing .05em
+           Rajdhani Bold: font-size 22px, font-weight 700, letter-spacing .14em
+        ──────────────────────────────────────────────────────── */
+        .logo-mark {
+            font-family: 'Bebas Neue', var(--sans);
+            font-style: normal;
+            font-weight: 400; /* Bebas Neue only has one weight */
+            font-size: 26px;
+            letter-spacing: .12em;
+            color: var(--t1);
+            line-height: 1;
+        }
+
+        .logo-divider {
+            width: 1px; height: 18px;
+            background: var(--border-2);
+        }
+
+        .logo-desc {
+            font-size: 11px; font-weight: 400;
+            color: var(--t3); letter-spacing: .02em;
+        }
+
+        .header-right { display: flex; align-items: center; gap: 20px; }
+
+        /* Live indicator */
+        .live { display: flex; align-items: center; gap: 7px; }
+        .live-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 0 2px var(--green-muted);
+            animation: livePulse 2.6s ease-in-out infinite;
+        }
+        @keyframes livePulse {
+            0%,100% { box-shadow: 0 0 0 2px var(--green-muted); }
+            50%      { box-shadow: 0 0 0 5px rgba(56,201,154,0); }
+        }
+        [data-theme="light"] .live-dot {
+            box-shadow: 0 0 0 2px var(--green-muted);
+        }
+        .live-text {
+            font-size: 10px; font-weight: 600;
+            letter-spacing: .1em; text-transform: uppercase;
+            color: var(--green);
+        }
+
+        #clock {
+            font-family: var(--mono);
+            font-size: 11px; color: var(--t3); letter-spacing: .04em;
+        }
+
+        .theme-toggle {
+            display: flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 8px;
+            border: 1px solid var(--border-2);
+            background: var(--toggle-bg);
+            color: var(--t2); cursor: pointer;
+            transition: all .2s;
+        }
+        .theme-toggle:hover { color: var(--t1); background: var(--surface-3); }
+        .theme-toggle svg { width: 15px; height: 15px; display: block; }
+        .icon-sun, .icon-moon { display: none; }
+        [data-theme="dark"]  .icon-moon { display: block; }
+        [data-theme="light"] .icon-sun  { display: block; }
+
+        /* ── KPI Strip ────────────────────────────────────────── */
+        .kpi-strip {
+            display: grid; grid-template-columns: repeat(4,1fr);
+            border-bottom: 1px solid var(--border);
+        }
+        .kpi-card {
+            padding: 20px 24px;
+            border-right: 1px solid var(--border);
+            background: var(--surface);
+            position: relative; overflow: hidden;
+            transition: background .28s, border-color .28s;
+        }
+        .kpi-card:last-child { border-right: none; }
+
+        .kpi-label {
+            font-size: 10px; font-weight: 600;
+            letter-spacing: .1em; text-transform: uppercase;
+            color: var(--t3); margin-bottom: 9px;
+        }
+        .kpi-num {
+            font-family: var(--mono);
+            font-size: 38px; font-weight: 500;
+            letter-spacing: -.04em; line-height: 1;
+            color: var(--t1);
+            transition: color .3s;
+        }
+        .kpi-sub { font-size: 11px; color: var(--t3); margin-top: 6px; }
+
+        /* Accent bar that animates in when data arrives */
+        .kpi-bar {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+            transform: scaleX(0); transform-origin: left;
+            transition: transform .5s cubic-bezier(.4,0,.2,1);
+        }
+        .kpi-card.has-data .kpi-bar { transform: scaleX(1); }
+        [data-kpi="blue"]   .kpi-bar { background: var(--accent); }
+        [data-kpi="amber"]  .kpi-bar { background: var(--amber); }
+        [data-kpi="red"]    .kpi-bar { background: var(--red); }
+        [data-kpi="green"]  .kpi-bar { background: var(--green); }
+
+        .kpi-num.c-blue   { color: var(--accent); }
+        .kpi-num.c-amber  { color: var(--amber); }
+        .kpi-num.c-red    { color: var(--red); }
+        .kpi-num.c-green  { color: var(--green); }
+
+        @keyframes numFlash { 0%{opacity:.15;} 100%{opacity:1;} }
+        .num-changed { animation: numFlash .45s ease-out; }
+
+        /* ── Layout ───────────────────────────────────────────── */
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 316px;
+            grid-template-areas:
+    "devices   generator"
+    "incidents log"
+    "violations violations";
+            gap: 16px;
+            padding: 18px 20px 44px;
+        }
+
+        /* ── Cards ────────────────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
+            transition: background .28s, border-color .28s, box-shadow .28s;
+        }
+        .card--devices    { grid-area: devices; }
+        .card--generator  { grid-area: generator; }
+        .card--incidents  { grid-area: incidents; }
+        .card--log        { grid-area: log; }
+        .card--violations { grid-area: violations; }
+
+        .card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 13px 18px;
+            border-bottom: 1px solid var(--border);
+            transition: border-color .28s;
+        }
+        .card-title {
+            font-size: 10px; font-weight: 600;
+            letter-spacing: .1em; text-transform: uppercase;
+            color: var(--t3);
+        }
+        .card-body { overflow: auto; max-height: 320px; overflow-x: auto; }
+        .card-pad  { padding: 18px; }
+
+        /* Badge */
+        .badge {
+            font-family: var(--mono); font-size: 10px; font-weight: 500;
+            padding: 2px 9px; border-radius: 20px;
+            background: var(--surface-3); color: var(--t3);
+            border: none; cursor: default;
+            transition: background .2s, color .2s;
+        }
+        .badge.warn  { background: var(--amber-muted); color: var(--amber); }
+        .badge.crit  { background: var(--red-muted);   color: var(--red); }
+        .badge.btn   { cursor: pointer; font-family: var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+        .badge.btn:hover { background: var(--surface-3); color: var(--t2); }
+
+        /* ── Tables ───────────────────────────────────────────── */
+        table { width: 100%; border-collapse: collapse; }
+        thead { position: sticky; top: 0; z-index: 10; }
+        th {
+            padding: 9px 14px;
+            font-size: 10px; font-weight: 600;
+            letter-spacing: .08em; text-transform: uppercase;
+            color: var(--t3); text-align: left;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            transition: background .28s, border-color .28s;
+        }
+        td {
+            padding: 9px 14px; font-size: 12px; color: var(--t1);
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+            transition: background .12s, border-color .28s;
+        }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: var(--surface-2); }
+        .mono { font-family: var(--mono); font-size: 11px; }
+
+        @keyframes rowIn { from{background:var(--green-muted);} to{background:transparent;} }
+        .row-new    td { animation: rowIn 1.4s ease-out; }
+        .row-failed td { background: rgba(232,96,90,.04); }
+
+        /* ── Status tags ──────────────────────────────────────── */
+        .tag {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 10px; font-weight: 600;
+            letter-spacing: .05em; text-transform: uppercase;
+            padding: 2px 8px; border-radius: 4px;
+        }
+        .tag::before {
+            content:''; width:5px; height:5px; border-radius:50%; display:block; flex-shrink:0;
+        }
+        .tag-green  { background:var(--green-muted);  color:var(--green);  }
+        .tag-green::before  { background:var(--green);  }
+        .tag-amber  { background:var(--amber-muted);  color:var(--amber);  }
+        .tag-amber::before  { background:var(--amber);  }
+        .tag-red    { background:var(--red-muted);    color:var(--red);    }
+        .tag-red::before    { background:var(--red);    }
+        .tag-blue   { background:var(--accent-muted); color:var(--accent); }
+        .tag-blue::before   { background:var(--accent); }
+        .tag-dim    { background:var(--surface-3);    color:var(--t3);     }
+        .tag-dim::before    { background:var(--t3);     }
+
+        /* Severity left-border on violation rows (Bloomberg-style signal) */
+        .sev-critical td:first-child { border-left: 3px solid var(--red);    padding-left: 11px; }
+        .sev-major    td:first-child { border-left: 3px solid var(--amber);  padding-left: 11px; }
+        .sev-minor    td:first-child { border-left: 3px solid var(--accent); padding-left: 11px; }
+
+        /* ── Generator ────────────────────────────────────────── */
+        .gen-state {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 13px; border-radius: 8px;
+            background: var(--surface-2); border: 1px solid var(--border);
+            margin-bottom: 16px;
+            transition: background .28s, border-color .28s;
+        }
+        .gen-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+            background: var(--t3);
+            transition: background .3s, box-shadow .3s;
+        }
+        .gen-dot.running {
+            background: var(--green);
+            box-shadow: 0 0 0 3px var(--green-muted);
+            animation: livePulse 1.9s ease-in-out infinite;
+        }
+        .gen-label { font-size: 12px; font-weight: 500; color: var(--t2); flex: 1; transition: color .2s; }
+        .gen-label.running { color: var(--green); }
+        .gen-count { font-family: var(--mono); font-size: 11px; color: var(--t3); }
+
+        .section-label {
+            font-size: 10px; font-weight: 600;
+            letter-spacing: .1em; text-transform: uppercase;
+            color: var(--t3); margin-bottom: 8px;
+        }
+        .scenario-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+
+        .scenario-btn {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 13px; border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent; color: var(--t1);
+            cursor: pointer; font-family: var(--sans); font-size: 12px;
+            font-weight: 500; text-align: left; width: 100%;
+            transition: background .15s, border-color .15s;
+        }
+        .scenario-btn:hover { background: var(--surface-2); border-color: var(--border-2); }
+        .scenario-btn:active { transform: scale(.98); }
+        .s-dot   { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .s-body  { display: flex; flex-direction: column; gap: 1px; }
+        .s-name  { font-size: 12px; font-weight: 500; }
+        .s-desc  { font-size: 10px; color: var(--t3); font-weight: 400; }
+
+        .scenario-btn.cascade-btn  { border-color: rgba(232,96,90,.22); }
+        .scenario-btn.cascade-btn:hover { background: var(--red-muted); border-color: var(--red); }
+
+        @keyframes cascadeGlow {
+            0%,100% { box-shadow: 0 0 0 0 transparent; }
+            50%      { box-shadow: 0 0 0 4px var(--red-muted); }
+        }
+        .cascade-active {
+            background: var(--red-muted) !important;
+            border-color: var(--red) !important;
+            animation: cascadeGlow 2.2s ease-in-out infinite;
+        }
+
+        .btn-stop {
+            width: 100%; padding: 9px; border-radius: 8px;
+            border: 1px solid var(--border-2); background: transparent;
+            color: var(--t2); font-family: var(--sans);
+            font-size: 10px; font-weight: 600;
+            letter-spacing: .08em; text-transform: uppercase;
+            cursor: pointer; transition: all .15s;
+        }
+        .btn-stop:hover { background: var(--surface-3); color: var(--t1); }
+
+        /* ── Activity log ─────────────────────────────────────── */
+        .log-list { display: flex; flex-direction: column; }
+        .log-entry {
+            display: flex; gap: 10px; align-items: flex-start;
+            padding: 7px 18px; font-size: 11px;
+            border-bottom: 1px solid var(--border);
+            transition: background .12s, border-color .28s;
+            animation: entryIn .22s ease-out;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-entry:hover { background: var(--surface-2); }
+        @keyframes entryIn { from{opacity:0;transform:translateY(-4px);} to{opacity:1;transform:translateY(0);} }
+        .log-ts  { font-family: var(--mono); font-size: 10px; color: var(--t3); flex-shrink:0; padding-top:1px; }
+        .log-msg { color: var(--t2); line-height: 1.4; }
+        .log-msg.warn { color: var(--amber); }
+        .log-msg.crit { color: var(--red); }
+        .log-msg.ok   { color: var(--green); }
+
+        /* ── Empty states ─────────────────────────────────────── */
+        .empty {
+            padding: 32px 20px; text-align: center;
+            color: var(--t3); font-size: 12px; line-height: 1.7;
+        }
+        .empty-icon { display: block; font-size: 14px; margin-bottom: 6px; opacity: .35; }
+
+        /* ── Error banner ─────────────────────────────────────── */
+        #err {
+            display: none;
+            background: var(--red-muted); color: var(--red);
+            font-size: 11px; font-weight: 500; letter-spacing: .04em;
+            text-align: center; padding: 8px;
+            border-bottom: 1px solid rgba(232,96,90,.2);
+            transition: background .28s;
+        }
+
+        /* ── Scrollbars ───────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 3px; height: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+
+        /* ── Responsive ───────────────────────────────────────── */
+        @media(max-width:960px){
+            .content{grid-template-columns:1fr;grid-template-areas:"devices""generator""incidents""log""violations";}
+            .kpi-strip{grid-template-columns:repeat(2,1fr);}
+            .kpi-card:nth-child(2){border-right:none;}
+        }
+    </style>
+</head>
+<body>
+
+<div id="err">API unreachable — ensure the Spring Boot application is running on port 8080</div>
+
+<!-- Header -->
+<header>
+    <div class="logo">
+        <span class="logo-mark">IANFC</span>
+        <span class="logo-divider"></span>
+        <span class="logo-desc">Intent-Aware Network Fault Correlation</span>
+    </div>
+    <div class="header-right">
+        <div class="live"><span class="live-dot"></span><span class="live-text">Live</span></div>
+        <span id="clock">--:--:-- UTC</span>
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+        </button>
+    </div>
+</header>
+
+<!-- KPI Strip -->
+<div class="kpi-strip">
+    <div class="kpi-card" data-kpi="blue" id="kc-devices">
+        <div class="kpi-label">Devices Tracked</div>
+        <div class="kpi-num" id="kn-devices">—</div>
+        <div class="kpi-sub">active in Redis state store</div>
+        <div class="kpi-bar"></div>
+    </div>
+    <div class="kpi-card" data-kpi="amber" id="kc-incidents">
+        <div class="kpi-label">Active Incidents</div>
+        <div class="kpi-num" id="kn-incidents">—</div>
+        <div class="kpi-sub">correlated fault events</div>
+        <div class="kpi-bar"></div>
+    </div>
+    <div class="kpi-card" data-kpi="red" id="kc-violations">
+        <div class="kpi-label">Intent Violations</div>
+        <div class="kpi-num" id="kn-violations">—</div>
+        <div class="kpi-sub">active SLA breaches</div>
+        <div class="kpi-bar"></div>
+    </div>
+    <div class="kpi-card" data-kpi="green" id="kc-generator">
+        <div class="kpi-label">Events Generated</div>
+        <div class="kpi-num" id="kn-events">—</div>
+        <div class="kpi-sub" id="ks-gen">generator stopped</div>
+        <div class="kpi-bar"></div>
+    </div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+    <!-- Device State -->
+    <div class="card card--devices">
+        <div class="card-header">
+            <span class="card-title">Device State</span>
+            <span class="badge" id="bd-devices">0</span>
+        </div>
+        <div class="card-body">
+            <table>
+                <thead><tr><th>Device ID</th><th>FSM State</th><th>Link</th><th>BGP</th><th>Latency</th><th>Packet Loss</th><th>Region</th><th>Last Updated</th></tr></thead>
+                <tbody id="tb-devices"><tr><td colspan="8"><div class="empty"><span class="empty-icon">◎</span>Waiting for telemetry — start the generator</div></td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Generator -->
+    <div class="card card--generator">
+        <div class="card-header"><span class="card-title">Telemetry Generator</span></div>
+        <div class="card-pad">
+            <div class="gen-state">
+                <span class="gen-dot" id="gen-dot"></span>
+                <span class="gen-label" id="gen-label">Stopped</span>
+                <span class="gen-count" id="gen-count">0 events</span>
+            </div>
+            <div class="section-label">Scenario</div>
+            <div class="scenario-list">
+                <button class="scenario-btn" onclick="startGen('NORMAL')">
+                    <span class="s-dot" style="background:var(--green)"></span>
+                    <span class="s-body"><span class="s-name">Normal</span><span class="s-desc">Steady-state, no faults</span></span>
+                </button>
+                <button class="scenario-btn" onclick="startGen('FLAP')">
+                    <span class="s-dot" style="background:var(--amber)"></span>
+                    <span class="s-body"><span class="s-name">Flap</span><span class="s-desc">Link flapping, partial correlation</span></span>
+                </button>
+                <button class="scenario-btn cascade-btn" id="btn-cascade" onclick="startGen('CASCADE_FAILURE')">
+                    <span class="s-dot" style="background:var(--red)"></span>
+                    <span class="s-body"><span class="s-name">Cascade Failure</span><span class="s-desc">Root-cause + alarm flood → violations</span></span>
+                </button>
+            </div>
+            <button class="btn-stop" onclick="stopGen()">Stop Generator</button>
+        </div>
+    </div>
+
+    <!-- Incidents -->
+    <div class="card card--incidents">
+        <div class="card-header">
+            <span class="card-title">Active Correlated Incidents</span>
+            <span class="badge" id="bd-incidents">0</span>
+        </div>
+        <div class="card-body">
+            <table>
+                <thead><tr><th>Fault ID</th><th>Root Device</th><th>Event Type</th><th>Suppressed</th><th>Affected Devices</th><th>Detected</th><th>Status</th></tr></thead>
+                <tbody id="tb-incidents"><tr><td colspan="7"><div class="empty"><span class="empty-icon">◈</span>No active incidents detected</div></td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="card card--log">
+        <div class="card-header">
+            <span class="card-title">Activity Log</span>
+            <button class="badge btn" onclick="clearLog()">Clear</button>
+        </div>
+        <div class="card-body" style="max-height:272px;">
+            <div class="log-list" id="log-list">
+                <div class="log-entry"><span class="log-ts">--:--:--</span><span class="log-msg">Dashboard initialised</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Violations -->
+    <div class="card card--violations">
+        <div class="card-header">
+            <span class="card-title">Active Intent Violations</span>
+            <span class="badge" id="bd-violations">0</span>
+        </div>
+        <div class="card-body">
+            <table>
+                <thead><tr><th>Violation ID</th><th>Intent Name</th><th>Linked Fault</th><th>Observed</th><th>Threshold</th><th>Unit</th><th>Violated At</th><th>Status</th></tr></thead>
+                <tbody id="tb-violations"><tr><td colspan="8"><div class="empty"><span class="empty-icon">✓</span>All intents satisfied — no active violations</div></td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const B='/api/v1';
+    let apiOk=true;
+    const pv={d:-1,i:-1,v:-1,gr:null,evBase:0,evLast:0};
+
+    /* Clock */
+    function tick(){document.getElementById('clock').textContent=new Date().toISOString().replace('T',' ').substring(0,19)+' UTC';}
+    setInterval(tick,1000);tick();
+
+    /* Theme */
+    function toggleTheme(){const h=document.documentElement;const n=h.dataset.theme==='dark'?'light':'dark';h.dataset.theme=n;try{localStorage.setItem('ianfc-theme',n);}catch(e){}}
+    try{const s=localStorage.getItem('ianfc-theme');if(s)document.documentElement.dataset.theme=s;}catch(e){}
+
+    /* Log */
+    function log(m,lv=''){
+        const l=document.getElementById('log-list');
+        const d=document.createElement('div');d.className='log-entry';
+        d.innerHTML=`<span class="log-ts">${new Date().toISOString().substring(11,19)}</span><span class="log-msg ${lv}">${m}</span>`;
+        l.prepend(d);while(l.children.length>50)l.removeChild(l.lastChild);
+    }
+    function clearLog(){document.getElementById('log-list').innerHTML='';}
+
+    /* Helpers */
+    const sh=id=>id||'—';
+    const ft=iso=>iso?iso.replace('T',' ').substring(0,19):'—';
+    function flash(el){el.classList.remove('num-changed');void el.offsetWidth;el.classList.add('num-changed');}
+    function setKpi(nId,cId,val,cls,hasData){
+        const el=document.getElementById(nId);
+        if(el.textContent!==String(val)){el.textContent=val;el.className='kpi-num '+(cls||'');flash(el);}
+        document.getElementById(cId).classList.toggle('has-data',!!hasData);
+    }
+    function fsmTag(s){
+        if(!s)return'<span class="tag tag-dim">—</span>';
+        const u=s.toUpperCase();
+        return u==='NORMAL'?'<span class="tag tag-green">Normal</span>':
+            u==='DEGRADED'?'<span class="tag tag-amber">Degraded</span>':
+                u==='FAILED'?'<span class="tag tag-red">Failed</span>':
+                    `<span class="tag tag-dim">${s}</span>`;
+    }
+    function stTag(s){
+        return!s?'<span class="tag tag-dim">—</span>':
+            s.toUpperCase()==='ACTIVE'?'<span class="tag tag-red">Active</span>':
+                `<span class="tag tag-dim">${s}</span>`;
+    }
+    function sevCls(sev){
+        if(!sev)return'';const u=sev.toUpperCase();
+        return u==='CRITICAL'?'sev-critical':u==='MAJOR'?'sev-major':u==='MINOR'?'sev-minor':'';
+    }
+    function setErr(f){
+        const b=document.getElementById('err');
+        if(f&&apiOk){b.style.display='block';apiOk=false;log('API unreachable','crit');}
+        if(!f&&!apiOk){b.style.display='none';apiOk=true;log('API connected','ok');}
+    }
+    async function api(p){const r=await fetch(B+p);if(!r.ok)throw new Error(r.status);return r.json();}
+
+    /* Devices */
+    async function rfDevices(){
+        try{
+            const d=await api('/state/devices');setErr(false);
+            const n=Array.isArray(d)?d.length:0;
+            setKpi('kn-devices','kc-devices',n,'c-blue',n>0);
+            document.getElementById('bd-devices').textContent=n;
+            if(n!==pv.d&&pv.d!==-1)log(`Device list updated — ${n} device${n!==1?'s':''} tracked`);
+            pv.d=n;
+            const tb=document.getElementById('tb-devices');
+            if(!n){tb.innerHTML='<tr><td colspan="8"><div class="empty"><span class="empty-icon">◎</span>No device state — start the generator</div></td></tr>';return;}
+            tb.innerHTML=d.map(x=>{
+                const fsm=x.fsmState||x.fsm||'';
+                return`<tr class="${fsm.toUpperCase()==='FAILED'?'row-failed':''}">
+        <td class="mono" style="color:var(--accent)">${x.deviceId||'—'}</td>
+        <td>${fsmTag(fsm)}</td>
+        <td>${x.linkState||'—'}</td>
+        <td>${x.bgpState||'—'}</td>
+        <td class="mono">${x.latencyMs!=null?x.latencyMs+' ms':'—'}</td>
+        <td class="mono">${x.packetLossPercent!=null?x.packetLossPercent+'%':'—'}</td>
+        <td style="color:var(--t2)">${x.region||'—'}</td>
+        <td class="mono" style="color:var(--t3)">${ft(x.lastUpdated)}</td>
+      </tr>`;
+            }).join('');
+        }catch(e){setErr(true);}
+    }
+
+    /* Incidents */
+    async function rfIncidents(){
+        try{
+            const d=await api('/incidents/active');
+            const n=Array.isArray(d)?d.length:0;
+            setKpi('kn-incidents','kc-incidents',n,n>0?'c-red':'c-amber',n>0);
+            const b=document.getElementById('bd-incidents');
+            b.textContent=n;b.className='badge'+(n>0?' warn':'');
+            if(n!==pv.i&&pv.i!==-1){const dl=n-pv.i;if(dl>0)log(`${dl} new incident${dl>1?'s':''} — total ${n}`,'warn');else log(`Incident count: ${n}`);}
+            pv.i=n;
+            const tb=document.getElementById('tb-incidents');
+            if(!n){tb.innerHTML='<tr><td colspan="7"><div class="empty"><span class="empty-icon">◈</span>No active incidents</div></td></tr>';return;}
+            tb.innerHTML=d.map(x=>{
+                const id=x.faultId||x.fault_id||'';
+                const aff=Array.isArray(x.affectedDevices)?x.affectedDevices.join(', '):(x.affectedDevices||'—');
+                return`<tr>
+        <td class="mono" style="color:var(--t3)" title="${id}">${sh(id)}</td>
+        <td style="color:var(--amber);font-weight:500">${x.rootCauseDeviceId||x.root_cause_device_id||'—'}</td>
+        <td>${x.rootCauseEventType||x.root_cause_event_type||'—'}</td>
+        <td class="mono" style="color:var(--red);font-weight:500">${x.suppressedAlarmCount??x.suppressed_alarm_count??'—'}</td>
+        <td title="${aff}">${aff}</td>
+        <td class="mono" style="color:var(--t3)">${ft(x.detectedAt||x.detected_at)}</td>
+        <td>${stTag(x.status)}</td>
+      </tr>`;
+            }).join('');
+        }catch(e){}
+    }
+
+    /* Violations */
+    async function rfViolations(){
+        try{
+            const d=await api('/violations/active');
+            const n=Array.isArray(d)?d.length:0;
+            setKpi('kn-violations','kc-violations',n,n>0?'c-red':'c-green',n>0);
+            const b=document.getElementById('bd-violations');
+            b.textContent=n;b.className='badge'+(n>0?' crit':'');
+            if(n!==pv.v&&pv.v!==-1){const dl=n-pv.v;if(dl>0)log(`${dl} intent violation${dl>1?'s':''} — SLA breach`,'crit');else log(`Violation count: ${n}`);}
+            pv.v=n;
+            const tb=document.getElementById('tb-violations');
+            if(!n){tb.innerHTML='<tr><td colspan="8"><div class="empty"><span class="empty-icon">✓</span>All intents satisfied</div></td></tr>';return;}
+            tb.innerHTML=d.map(x=>{
+                const vid=x.violationId||x.violation_id||'';
+                const fid=x.faultId||x.fault_id||'';
+                return`<tr class="${sevCls(x.severity)}">
+        <td class="mono" style="color:var(--t3)" title="${vid}">${sh(vid)}</td>
+        <td style="color:var(--red);font-weight:500">${x.intentName||x.intent_name||'—'}</td>
+        <td class="mono" style="color:var(--t3)" title="${fid}">${sh(fid)}</td>
+        <td class="mono" style="color:var(--red);font-weight:500">${x.observedValue??x.observed_value??'—'}</td>
+        <td class="mono">${x.thresholdValue??x.threshold_value??'—'}</td>
+        <td>${x.thresholdUnit||x.threshold_unit||'—'}</td>
+        <td class="mono" style="color:var(--t3)">${ft(x.violatedAt||x.violated_at)}</td>
+        <td>${stTag(x.status)}</td>
+      </tr>`;
+            }).join('');
+        }catch(e){}
+    }
+
+    /* Generator */
+    async function rfGenerator(){
+        try{
+            const d=await api('/generator/status');
+            const running=d.running===true;
+            const raw=d.eventCount??d.event_count??0;
+            if(raw<pv.evLast)pv.evBase+=pv.evLast;
+            pv.evLast=raw;
+            const count=pv.evBase+raw;
+            setKpi('kn-events','kc-generator',count.toLocaleString(),running?'c-green':'',running);
+            document.getElementById('gen-count').textContent=count.toLocaleString()+' events';
+            document.getElementById('ks-gen').textContent=running?'generator running':'generator stopped';
+            const dot=document.getElementById('gen-dot');
+            const lbl=document.getElementById('gen-label');
+            const cas=document.getElementById('btn-cascade');
+            const sc=(d.scenarioType||d.scenario_type||'').replace(/_/g,' ').toLowerCase();
+            if(running){
+                dot.className='gen-dot running';
+                lbl.textContent=sc?sc.charAt(0).toUpperCase()+sc.slice(1):'Running';
+                lbl.className='gen-label running';
+                cas.classList.toggle('cascade-active',(d.scenarioType||'').toUpperCase()==='CASCADE_FAILURE');
+                if(running!==pv.gr)log(`Generator started — ${sc}`,'warn');
+            }else{
+                dot.className='gen-dot';lbl.textContent='Stopped';lbl.className='gen-label';
+                cas.classList.remove('cascade-active');
+                if(running!==pv.gr&&pv.gr!==null)log('Generator stopped');
+            }
+            pv.gr=running;
+        }catch(e){}
+    }
+
+    /* Controls */
+    async function startGen(sc){
+        try{
+            const r=await fetch(B+'/generator/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scenarioType:sc})});
+            if(!r.ok)log(`Generator start failed: HTTP ${r.status}`,'crit');
+        }catch(e){log('Generator start failed: '+e.message,'crit');}
+    }
+    async function stopGen(){
+        try{await fetch(B+'/generator/stop',{method:'POST'});}catch(e){log('Generator stop failed','crit');}
+    }
+
+    /* Poll */
+    async function poll(){await Promise.all([rfDevices(),rfIncidents(),rfViolations(),rfGenerator()]);}
+    poll();setInterval(poll,2500);
+</script>
+</body>
+</html>

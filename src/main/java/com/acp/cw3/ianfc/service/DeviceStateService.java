@@ -72,7 +72,7 @@ public class DeviceStateService {
             default -> current; // LATENCY_SPIKE, LATENCY_NORMAL, PACKET_LOSS: no FSM change
         };
 
-        if (next != current) {
+        if (next != current || raw == null) {
             redisTemplate.opsForValue().set(key, next.name());
             log.debug("FSM transition: deviceId={} {} -> {}", event.getDeviceId(), current, next);
         }

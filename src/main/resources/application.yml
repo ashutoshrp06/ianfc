@@ -2,6 +2,11 @@ spring:
   application:
     name: ianfc
 
+  web:
+    resources:
+      cache:
+        period: 0
+
   datasource:
     url: jdbc:postgresql://localhost:5432/ianfc
     username: ianfc_user
