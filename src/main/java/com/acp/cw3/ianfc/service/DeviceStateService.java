@@ -7,6 +7,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import com.acp.cw3.ianfc.model.CorrelatedFault;
+import com.acp.cw3.ianfc.model.IntentViolation;
+import com.acp.cw3.ianfc.repository.CorrelatedIncidentRepository;
+import com.acp.cw3.ianfc.repository.IntentViolationRepository;
 
 import java.time.Instant;
 import java.util.*;
@@ -18,6 +22,9 @@ import java.util.stream.Collectors;
 public class DeviceStateService {
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final CorrelatedIncidentRepository incidentRepository;
+    private final IntentViolationRepository violationRepository;
+    private final ViolationService violationService;
 
     private static final String DEVICE_STATE_KEY = "device:state:";
     private static final String DEVICE_FSM_KEY   = "device:fsm:";
@@ -63,9 +70,11 @@ public class DeviceStateService {
                 case NORMAL   -> DeviceFsmState.DEGRADED;
                 case DEGRADED -> DeviceFsmState.FAILED;
                 case FAILED   -> DeviceFsmState.FAILED;
+                case RECOVERING -> DeviceFsmState.FAILED;
             };
             case LINK_UP, BGP_SESSION_UP -> switch (current) {
-                case FAILED   -> DeviceFsmState.DEGRADED;
+                case FAILED   -> DeviceFsmState.RECOVERING;
+                case RECOVERING -> DeviceFsmState.NORMAL;
                 case DEGRADED -> DeviceFsmState.NORMAL;
                 case NORMAL   -> DeviceFsmState.NORMAL;
             };
@@ -75,6 +84,9 @@ public class DeviceStateService {
         if (next != current || raw == null) {
             redisTemplate.opsForValue().set(key, next.name());
             log.debug("FSM transition: deviceId={} {} -> {}", event.getDeviceId(), current, next);
+            if (next == DeviceFsmState.NORMAL && current != DeviceFsmState.NORMAL) {
+                resolveForDevice(event.getDeviceId());
+            }
         }
     }
 
@@ -100,5 +112,30 @@ public class DeviceStateService {
         Set<String> keys = redisTemplate.keys(DEVICE_STATE_KEY + "*");
         if (keys == null) return Collections.emptySet();
         return keys;
+    }
+
+    private void resolveForDevice(String deviceId) {
+        Instant now = Instant.now();
+        List<CorrelatedFault> active = incidentRepository
+                .findByRootCauseDeviceIdAndStatus(deviceId, "ACTIVE");
+        for (CorrelatedFault incident : active) {
+            incident.setStatus("RESOLVED");
+            incident.setResolvedAt(now);
+            incidentRepository.save(incident);
+
+            List<IntentViolation> violations = violationRepository
+                    .findByFault_FaultIdAndStatus(incident.getFaultId(), "ACTIVE");
+            for (IntentViolation v : violations) {
+                v.setStatus("RESOLVED");
+                v.setResolvedAt(now);
+                violationRepository.save(v);
+                if (v.getIntent() != null) {
+                    violationService.removeActiveViolation(
+                            v.getIntent().getIntentId().toString());
+                }
+            }
+            log.info("Resolved incident={} + {} violation(s) for device={}",
+                    incident.getFaultId(), violations.size(), deviceId);
+        }
     }
 }

@@ -72,7 +72,7 @@ public class CorrelationService {
                 String deviceId = key.replace(DEVICE_FSM_KEY, "");
                 if (deviceId.equals(rootEvent.getDeviceId())) continue;
                 String state = redisTemplate.opsForValue().get(key);
-                if ("DEGRADED".equals(state) || "FAILED".equals(state)) {
+                if ("DEGRADED".equals(state) || "FAILED".equals(state) || "RECOVERING".equals(state)) {
                     affected.add(deviceId);
                 }
             }

@@ -14,5 +14,7 @@ public interface IntentViolationRepository extends JpaRepository<IntentViolation
 
     List<IntentViolation> findByStatusOrderByViolatedAtDesc(String status);
 
-    List<IntentViolation> findByIntent_IntentIdAndStatus(UUID intentId, String status);
+    List<IntentViolation> findByIntent_IntentIdAndStatus(UUID faultId, String status);
+
+    List<IntentViolation> findByFault_FaultIdAndStatus(UUID faultId, String status);
 }

@@ -12,5 +12,8 @@ public interface CorrelatedIncidentRepository extends JpaRepository<CorrelatedFa
 
     List<CorrelatedFault> findByStatus(String status);
 
+    List<CorrelatedFault> findByRootCauseDeviceIdAndStatus(String rootCauseDeviceId, String status);
+
     List<CorrelatedFault> findByStatusOrderByDetectedAtDesc(String status);
 }
+

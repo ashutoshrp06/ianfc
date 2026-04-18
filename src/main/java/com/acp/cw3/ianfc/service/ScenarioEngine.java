@@ -66,7 +66,7 @@ public class ScenarioEngine {
         String device = ALL_DEVICES.get(random.nextInt(ALL_DEVICES.size()));
         EventType[] types = {
                 EventType.LINK_UP, EventType.BGP_SESSION_UP,
-                EventType.LATENCY_NORMAL, EventType.PACKET_LOSS
+                EventType.LATENCY_NORMAL
         };
         EventType eventType = types[random.nextInt(types.length)];
 
